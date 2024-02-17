@@ -597,86 +597,54 @@ module Tag_Parser : TAG_PARSER = struct
                                   ScmPair (ScmBoolean false,
                                            ScmNil))));;
 
+  let beginnify = function
+  |ScmNil -> ScmVoid
+  | ScmPair (e, ScmNil) -> e
+  | es -> ScmPair (ScmSymbol "begin", es);;
+  
   let rec macro_expand_cond_ribs ribs = 
     match ribs with
-    | ScmPair(ScmPair(ScmSymbol("else"), else_rib), rest_ribs) ->
-      (ScmPair(ScmSymbol("begin"), else_rib))
-    |ScmPair(ScmPair(test, ScmPair(ScmSymbol("=>"), ScmPair(exprf, ScmNil))), ScmNil) ->
-      ScmPair
- (ScmSymbol "let",
-  ScmPair
-   (ScmPair
-     (ScmPair (ScmSymbol "value", ScmPair (test, ScmNil)),
-      ScmPair
-       (ScmPair
-         (ScmSymbol "f",
-          ScmPair
-           (ScmPair
-             (ScmSymbol "lambda",
-              ScmPair (ScmNil, ScmPair (exprf, ScmNil))),
-            ScmNil)),
-        ScmNil)),
-    ScmPair
-     (ScmPair
-       (ScmSymbol "if",
+    | ScmPair (ScmPair (ScmSymbol "else", es), ScmNil) -> beginnify es
+    | ScmPair (ScmPair (expr, ScmPair (ScmSymbol "=>", ScmPair (expr_f, ScmNil))), ribs) ->
+        let continue = macro_expand_cond_ribs ribs in
         ScmPair
-         (ScmSymbol "test",
-          ScmPair
-           (ScmPair
-             (ScmPair (ScmSymbol "f", ScmNil),
-              ScmPair (ScmSymbol "value", ScmNil)),
-            ScmNil))),
-      ScmNil)))
-    | ScmPair(ScmPair(test, ScmPair(ScmSymbol("=>"), ScmPair(exprf, ScmNil))), rest_ribs) ->
-      ScmPair
-      (ScmSymbol "let",
-       ScmPair
-        (ScmPair
-          (ScmPair (ScmSymbol "value", ScmPair (test, ScmNil)),
-           ScmPair
-            (ScmPair
-              (ScmSymbol "f",
-               ScmPair
-                (ScmPair
-                  (ScmSymbol "lambda",
-                   ScmPair (ScmNil, ScmPair (exprf, ScmNil))),
-                 ScmNil)),
-             ScmPair
-              (ScmPair
-                (ScmSymbol "rest",
-                 ScmPair
-                  (ScmPair
-                    (ScmSymbol "lambda",
-                     ScmPair (ScmNil, ScmPair ((macro_expand_cond_ribs rest_ribs), ScmNil))),
-                   ScmNil)),
-               ScmNil))),
-         ScmPair
-          (ScmPair
-            (ScmSymbol "if",
-             ScmPair
-              (ScmSymbol "test",
-               ScmPair
-                (ScmPair
-                  (ScmPair (ScmSymbol "f", ScmNil),
-                   ScmPair (ScmSymbol "value", ScmNil)),
-                 ScmPair (ScmPair (ScmSymbol "rest", ScmNil), ScmNil)))),
-           ScmNil)))
-           | ScmPair (ScmPair (test, dit), ScmNil) ->
+          (ScmSymbol "let",
             ScmPair
-            (ScmSymbol "if",
-             ScmPair
-              (test,
-               ScmPair
-                (ScmPair (ScmSymbol "begin", dit), ScmNil)))
-            | ScmPair (ScmPair (test, dit), rest_ribs) -> 
-              ScmPair
-              (ScmSymbol "if",
-               ScmPair
-                (test,
-                 ScmPair
-                  (ScmPair (ScmSymbol "begin", dit),
-                   ScmPair ((macro_expand_cond_ribs rest_ribs), ScmNil))))
-            | _ -> raise (X_syntax "Wrong cond-rib syntax");;
+            (ScmPair
+              (ScmPair (ScmSymbol "e", ScmPair (expr, ScmNil)),
+                ScmPair
+                  (ScmPair (ScmSymbol "fth",
+                    ScmPair
+                    (ScmPair
+                      (ScmSymbol "lambda",
+                        ScmPair (ScmNil, ScmPair (expr_f, ScmNil))),
+                        ScmNil)),
+                        ScmPair
+                        (ScmPair
+                          (ScmSymbol "rest",
+                            ScmPair
+                            (ScmPair
+                              (ScmSymbol "lambda",
+                                ScmPair (ScmNil, ScmPair (continue, ScmNil))),
+                              ScmNil)),
+                          ScmNil))),
+                          ScmPair
+                          (ScmPair
+                            (ScmSymbol "if",
+                              ScmPair
+                              (ScmSymbol "e",
+                                ScmPair
+                                (ScmPair
+                                  (ScmPair (ScmSymbol "fth", ScmNil),
+                                    ScmPair (ScmSymbol "e", ScmNil)),
+                                  ScmPair (ScmPair (ScmSymbol "rest", ScmNil), ScmNil)))),
+                            ScmNil)))
+    | ScmPair (ScmPair (test, es), ribs) ->
+      let dit = beginnify es in
+      let dif = macro_expand_cond_ribs ribs in
+      ScmPair (ScmSymbol "if", ScmPair(test, ScmPair (dit, ScmPair (dif, ScmNil))))
+    | _ -> raise (X_syntax "Malformed cond-ribs")
+;;
 
   let rec macro_expand_letrec_ribs ribs =
     match ribs with

@@ -986,31 +986,6 @@ module Semantic_Analysis : SEMANTIC_ANALYSIS = struct
         | Some(major, minor) -> Var' (name, Bound (major, minor)))
     | Some minor -> Var' (name, Param minor);;
 
-  (*type expr =
-  | ScmConst of sexpr
-  | ScmVarGet of var
-  | ScmIf of expr * expr * expr
-  | ScmSeq of expr list
-  | ScmOr of expr list
-  | ScmVarSet of var * expr
-  | ScmVarDef of var * expr
-  | ScmLambda of string list * lambda_kind * expr
-  | ScmApplic of expr * expr list;;
-  
-  type expr' =
-  | ScmConst' of sexpr
-  | ScmVarGet' of var'
-  | ScmIf' of expr' * expr' * expr'
-  | ScmSeq' of expr' list
-  | ScmOr' of expr' list
-  | ScmVarSet' of var' * expr'
-  | ScmVarDef' of var' * expr'
-  | ScmBox' of var'
-  | ScmBoxGet' of var'
-  | ScmBoxSet' of var' * expr'
-  | ScmLambda' of string list * lambda_kind * expr'
-  | ScmApplic' of expr' * expr' list * app_kind;;
-  *)
   (* run this first *)
   let annotate_lexical_address pe =
     let rec run params env = function

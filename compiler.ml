@@ -986,13 +986,62 @@ module Semantic_Analysis : SEMANTIC_ANALYSIS = struct
         | Some(major, minor) -> Var' (name, Bound (major, minor)))
     | Some minor -> Var' (name, Param minor);;
 
+  (*type expr =
+  | ScmConst of sexpr
+  | ScmVarGet of var
+  | ScmIf of expr * expr * expr
+  | ScmSeq of expr list
+  | ScmOr of expr list
+  | ScmVarSet of var * expr
+  | ScmVarDef of var * expr
+  | ScmLambda of string list * lambda_kind * expr
+  | ScmApplic of expr * expr list;;
+  
+  type expr' =
+  | ScmConst' of sexpr
+  | ScmVarGet' of var'
+  | ScmIf' of expr' * expr' * expr'
+  | ScmSeq' of expr' list
+  | ScmOr' of expr' list
+  | ScmVarSet' of var' * expr'
+  | ScmVarDef' of var' * expr'
+  | ScmBox' of var'
+  | ScmBoxGet' of var'
+  | ScmBoxSet' of var' * expr'
+  | ScmLambda' of string list * lambda_kind * expr'
+  | ScmApplic' of expr' * expr' list * app_kind;;
+  *)
   (* run this first *)
   let annotate_lexical_address pe =
-    raise (X_not_yet_implemented "hw 2")
+    let rec run params env = function
+    | ScmConst (sexpr) -> ScmConst'(sexpr)
+    | ScmVarGet (Var (name)) -> ScmVarGet'(tag_lexical_address_for_var name params env)
+    | ScmIf(test, dit, dif) -> 
+      let test' = run params env test in
+      let dit' = run params env dit in
+      let dif' = run params env dif in
+      ScmIf'(test', dit', dif')
+    | ScmSeq (es) -> ScmSeq'(List.map (run params env) es) 
+    | ScmOr (es) -> ScmOr'(List.map (run params env) es)
+    | ScmVarSet (Var(name), expr) -> 
+      ScmVarSet'((tag_lexical_address_for_var name params env), (run params env expr))
+    | ScmVarDef (Var (name), expr) -> 
+      ScmVarDef'((tag_lexical_address_for_var name params env), (run params env expr))
+    | ScmLambda (params', Simple, body) ->
+      let body' = (run params' (params::env) body) in
+      ScmLambda'(params', Simple, body')
+    | ScmLambda (params', Opt(opt_param), body) ->
+      let body' = (run (params' @ [opt_param]) (params::env) body) in
+      ScmLambda'(params', Opt(opt_param), body')
+    | ScmApplic (e, es) ->
+      let e' = run params env e in
+      let es' = List.map (run params env) es in
+      ScmApplic'(e', es', Non_Tail_Call)
+    in run [] [] pe
+  ;;
 
   (* run this second *)
-  let annotate_tail_calls pe = 
-    raise (X_not_yet_implemented "hw 2");;
+  let annotate_tail_calls pe = pe;;
 
   (* auto_box *)
 

@@ -1863,7 +1863,11 @@ module Code_Generation : CODE_GENERATION = struct
             | None -> run params env (ScmConst' (ScmBoolean false)))
          in asm_code
       | ScmVarSet' (Var' (v, Free), expr') ->
-         raise (X_not_yet_implemented "final project")
+        let label = search_free_var_table v free_vars in
+        let expr'_asm = run params env expr' in
+        "\n\t" ^ expr'_asm ^ "\n"
+        ^ (Printf.sprintf "\tmov qword [%s], rax\n" label)
+        ^ "\tmov rax, sob_void\n"
       | ScmVarSet' (Var' (v, Param minor), ScmBox' _) ->
          raise (X_not_yet_implemented "final project")
       | ScmVarSet' (Var' (v, Param minor), expr') ->

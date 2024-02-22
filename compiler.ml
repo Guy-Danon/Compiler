@@ -1015,9 +1015,63 @@ module Semantic_Analysis : SEMANTIC_ANALYSIS = struct
     in run [] [] pe
   ;;
 
-  (* run this second *)
-  let annotate_tail_calls pe = pe;;
+  (*
+  type expr' =
+  | ScmConst' of sexpr
+  | ScmVarGet' of var'
+  | ScmIf' of expr' * expr' * expr'
+  | ScmSeq' of expr' list
+  | ScmOr' of expr' list
+  | ScmVarSet' of var' * expr'
+  | ScmVarDef' of var' * expr'
+  | ScmBox' of var'
+  | ScmBoxGet' of var'
+  | ScmBoxSet' of var' * expr'
+  | ScmLambda' of string list * lambda_kind * expr'
+  | ScmApplic' of expr' * expr' list * app_kind;;
+  *)
 
+  (* run this second *)
+  let annotate_tail_calls pe =
+    let rec run tp pe =
+      match pe,tp with
+      | ScmConst'(e), _ -> ScmConst'(e)
+      | ScmVarGet'(var'), _ -> ScmVarGet'(var')
+      | ScmIf'(test, dit, dif), tp ->
+          let test' = run false test in
+          let dit' = run tp test in
+          let dif' = run tp test in
+          ScmIf'(test', dit', dif')
+      | ScmSeq'(es), tp -> 
+        let mapped_body = map_tp es tp in
+        ScmSeq'(mapped_body)
+      | ScmOr'(es), tp ->
+        let mapped_args = map_tp es tp in
+        ScmOr'(mapped_args)
+      | ScmVarSet'(v, e), _ ->
+          let e' = run false e in
+          ScmVarSet'(v, e')
+      | ScmVarDef'(v, e), _ ->
+          let e' = run false e in
+          ScmVarDef'(v, e')
+      | ScmLambda'(params, kind, body), _ ->
+          let body' = run true body in
+          ScmLambda'(params, kind, body')
+      | ScmApplic'(op, params, _), tp -> 
+          let op' = run false op in
+          let params' = List.map (run false) params in
+          if tp 
+          then ScmApplic'(op', params',Tail_Call)
+          else ScmApplic'(op', params',Non_Tail_Call)
+      | _, _ -> pe
+    and map_tp expr_list tp =
+      match expr_list with
+      | [] -> []
+      | [e] -> [run tp e]
+      | e::es -> (run false e)::(map_tp es tp)
+    in
+    run false pe
+  ;;
   (* auto_box *)
 
   let copy_list = List.map (fun si -> si);;

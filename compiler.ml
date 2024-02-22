@@ -1015,22 +1015,6 @@ module Semantic_Analysis : SEMANTIC_ANALYSIS = struct
     in run [] [] pe
   ;;
 
-  (*
-  type expr' =
-  | ScmConst' of sexpr
-  | ScmVarGet' of var'
-  | ScmIf' of expr' * expr' * expr'
-  | ScmSeq' of expr' list
-  | ScmOr' of expr' list
-  | ScmVarSet' of var' * expr'
-  | ScmVarDef' of var' * expr'
-  | ScmBox' of var'
-  | ScmBoxGet' of var'
-  | ScmBoxSet' of var' * expr'
-  | ScmLambda' of string list * lambda_kind * expr'
-  | ScmApplic' of expr' * expr' list * app_kind;;
-  *)
-
   (* run this second *)
   let annotate_tail_calls pe =
     let rec run tp pe =

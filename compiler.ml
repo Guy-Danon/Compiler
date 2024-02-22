@@ -1682,8 +1682,32 @@ module Code_Generation : CODE_GENERATION = struct
     Printf.sprintf "%s:\n%s"
       label_start_of_constants_table (run table);;
 
+  let get_var_if_free var = 
+    match var with
+    | Var'(name, Free) -> [name]
+    | _ -> []
+  ;;
   let collect_free_vars pe =
-    raise (X_not_yet_implemented "final project");;
+    let rec run = function
+    | ScmConst'(_) -> []
+    | ScmVarGet'(var) -> get_var_if_free var 
+    | ScmIf'(test, dit, dif) ->
+      let test' = run test in
+      let dit' = run dit in
+      let dif' = run dif in
+      test' @ dit' @ dif'
+    | ScmSeq'(es) -> List.flatten (List.map run es)
+    | ScmOr'(es) -> List.flatten (List.map run es)
+    | ScmVarSet'(var, e) ->
+      let e' = run e in
+      (get_var_if_free var) @ e'
+    | ScmVarDef'(var, e) ->
+        let e' = run e in
+        (get_var_if_free var) @ e'
+    | ScmLambda'(_, _, body) -> run body
+    | ScmApplic'(op, es, _) -> List.flatten (List.map run ([op] @ es))
+    | _ -> [] in
+    List.flatten (List.map (fun e -> run e) pe);;
 
   let make_free_vars_table =
     let rec run index = function
@@ -1801,7 +1825,19 @@ module Code_Generation : CODE_GENERATION = struct
          ^ (Printf.sprintf
               "\tmov rax, qword [rax + 8 * %d]\t; bound var %s\n" minor v)
       | ScmIf' (test, dit, dif) ->
-         raise (X_not_yet_implemented "final project")
+        let label_else = make_if_else() in
+        let label_exit = make_if_end() in
+        let test_asm = run params env test in
+        let dit_asm = run params env dit in
+        let dif_asm = run params env dif in
+         "\n\t" ^ test_asm ^ "\n"
+         ^ "\tcmp rax, sob_boolean_false\n"
+         ^ "\tje " ^ label_else ^ "\n"
+         ^ "\t" ^ dit_asm ^ "\n"
+         ^ "\tjmp " ^ label_exit ^ "\n"
+         ^ "\t" ^ label_else ^ ":\n"
+         ^ "\t" ^ dif_asm ^"\n"
+         ^ "\t" ^  label_exit ^ ":\n"
       | ScmSeq' exprs' ->
          String.concat "\n"
            (List.map (run params env) exprs')

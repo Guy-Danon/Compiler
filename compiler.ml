@@ -1871,9 +1871,15 @@ module Code_Generation : CODE_GENERATION = struct
       | ScmVarSet' (Var' (v, Param minor), ScmBox' _) ->
          raise (X_not_yet_implemented "final project")
       | ScmVarSet' (Var' (v, Param minor), expr') ->
-         raise (X_not_yet_implemented "final project")
+        (run params env expr')
+        ^ (Printf.sprintf "\tmov qword [rbp + 8 * (4 + %d)], rax\n" minor)
+        ^ "\tmov rax, sob_void\n"
       | ScmVarSet' (Var' (v, Bound (major, minor)), expr') ->
-         raise (X_not_yet_implemented "final project")
+        (run params env expr')
+        ^ "\tmov rbx, qword[rbp + 8*2]\n"
+        ^ (Printf.sprintf "\tmov rbx, qword[rbx + 8*%d]\n" major)
+        ^ (Printf.sprintf "\tmov qword[rbx + 8*%d], rax\n" minor)
+        ^ "\tmov rax, sob_void\n"
       | ScmVarDef' (Var' (v, Free), expr') ->
          let label = search_free_var_table v free_vars in
          (run params env expr')
@@ -1889,7 +1895,11 @@ module Code_Generation : CODE_GENERATION = struct
          (run params env (ScmVarGet' var'))
          ^ "\tmov rax, qword [rax]\n"
       | ScmBoxSet' (var', expr') ->
-         raise (X_not_yet_implemented "final project")
+        (run params env expr')
+        ^ "\tpush rax\n"
+        ^ (run params env (ScmVarGet' var')) (*TODO*)
+        ^ "pop qword [rax]\n"
+        ^ "mov rax, sob_void\n"
       | ScmLambda' (params', Simple, body) ->
          let label_loop_env = make_lambda_simple_loop_env ()
          and label_loop_env_end = make_lambda_simple_loop_env_end ()
@@ -1953,7 +1963,26 @@ module Code_Generation : CODE_GENERATION = struct
       | ScmLambda' (params', Opt opt, body) ->
          raise (X_not_yet_implemented "final project")
       | ScmApplic' (proc, args, Non_Tail_Call) -> 
-         raise (X_not_yet_implemented "final project")
+        let args_code =
+          String.concat ""
+            (List.map
+               (fun arg ->
+                 let arg_code = run params env arg in
+                 arg_code
+                 ^ "\tpush rax\n")
+               (List.rev args)) in
+        let proc_code = run params env proc in
+        "; preparing a non-tail-call applic\n"
+        ^ args_code
+        ^ (Printf.sprintf "\tpush %d\t; arg count\n" (List.length args))
+        ^ proc_code
+        ^ "\tcmp byte [rax], T_closure\t; assert closure \n"
+        ^ "\tjne L_error_non_closure\n "
+        ^ "\tpush qword [rax + 1]\t; push env\n"
+        ^ "\tcall qword [rax + 1 + 8]\t; call code\n"
+        ^ "\tadd rsp, 8*1\t;pop env\n"
+        ^ "\tpop rbx\t;pop arg count\n"
+        ^ "\tlea rsp, [rsp + 8*rbx]\t; correct rsp\n"
       | ScmApplic' (proc, args, Tail_Call) -> 
          let args_code =
            String.concat ""

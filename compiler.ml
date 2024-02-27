@@ -1687,6 +1687,9 @@ module Code_Generation : CODE_GENERATION = struct
     | Var'(name, Free) -> [name]
     | _ -> []
   ;;
+
+  let global_vars_names = 
+    List.map (fun (scm_name, _) -> scm_name) global_bindings_table;;
   let collect_free_vars pe =
     let rec run = function
     | ScmConst'(_) -> []
@@ -1707,7 +1710,7 @@ module Code_Generation : CODE_GENERATION = struct
     | ScmLambda'(_, _, body) -> run body
     | ScmApplic'(op, es, _) -> List.flatten (List.map run ([op] @ es))
     | _ -> [] in
-    List.flatten (List.map (fun e -> run e) pe);;
+    global_vars_names  @ List.flatten (List.map (fun e -> run e) pe);;
 
   let make_free_vars_table =
     let rec run index = function
@@ -1869,7 +1872,7 @@ module Code_Generation : CODE_GENERATION = struct
         ^ (Printf.sprintf "\tmov qword [%s], rax\n" label)
         ^ "\tmov rax, sob_void\n"
       | ScmVarSet' (Var' (v, Param minor), ScmBox' _) ->
-         raise (X_not_yet_implemented "final project")
+         ";Unimplemented(ScmVarSet')!!!!!\n"
       | ScmVarSet' (Var' (v, Param minor), expr') ->
         (run params env expr')
         ^ (Printf.sprintf "\tmov qword [rbp + 8 * (4 + %d)], rax\n" minor)
@@ -1961,7 +1964,7 @@ module Code_Generation : CODE_GENERATION = struct
          ^ (Printf.sprintf "\tret AND_KILL_FRAME(%d)\n" (List.length params'))
          ^ (Printf.sprintf "%s:\t; new closure is in rax\n" label_end)
       | ScmLambda' (params', Opt opt, body) ->
-         raise (X_not_yet_implemented "final project")
+        ";Unimplemented(ScmLambda')!!!!!\n"
       | ScmApplic' (proc, args, Non_Tail_Call) -> 
         let args_code =
           String.concat ""

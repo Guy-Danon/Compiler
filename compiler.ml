@@ -1872,7 +1872,11 @@ module Code_Generation : CODE_GENERATION = struct
         ^ (Printf.sprintf "\tmov qword [%s], rax\n" label)
         ^ "\tmov rax, sob_void\n"
       | ScmVarSet' (Var' (v, Param minor), ScmBox' _) ->
-         ";Unimplemented(ScmVarSet')!!!!!\n"
+        "\tmov rdi, 8\n"
+        ^ "\tcall malloc\n"
+        ^ (Printf.sprintf "\tmov qword [rax], PARAM(%d)\t; param %s\n" minor v)
+        ^ (Printf.sprintf "\tmov PARAM(%d), rax\t; param %s\n" minor v)
+        ^ "\tmov rax, sob_void\n"
       | ScmVarSet' (Var' (v, Param minor), expr') ->
         (run params env expr')
         ^ (Printf.sprintf "\tmov qword [rbp + 8 * (4 + %d)], rax\n" minor)

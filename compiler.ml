@@ -1710,7 +1710,7 @@ module Code_Generation : CODE_GENERATION = struct
     | ScmLambda'(_, _, body) -> run body
     | ScmApplic'(op, es, _) -> List.flatten (List.map run ([op] @ es))
     | _ -> [] in
-    global_vars_names  @ List.flatten (List.map (fun e -> run e) pe);;
+    remove_duplicates (global_vars_names  @ List.flatten (List.map (fun e -> run e) pe));;
 
   let make_free_vars_table =
     let rec run index = function

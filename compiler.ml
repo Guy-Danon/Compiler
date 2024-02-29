@@ -1833,7 +1833,8 @@ module Code_Generation : CODE_GENERATION = struct
         let test_asm = run params env test in
         let dit_asm = run params env dit in
         let dif_asm = run params env dif in
-         "\n\t" ^ test_asm ^ "\n"
+        "; begin if statment\n"
+        ^ test_asm
          ^ "\tcmp rax, sob_boolean_false\n"
          ^ "\tje " ^ label_else ^ "\n"
          ^ "\t" ^ dit_asm ^ "\n"
@@ -1868,7 +1869,7 @@ module Code_Generation : CODE_GENERATION = struct
       | ScmVarSet' (Var' (v, Free), expr') ->
         let label = search_free_var_table v free_vars in
         let expr'_asm = run params env expr' in
-        "\n\t" ^ expr'_asm ^ "\n"
+        expr'_asm
         ^ (Printf.sprintf "\tmov qword [%s], rax\n" label)
         ^ "\tmov rax, sob_void\n"
       | ScmVarSet' (Var' (v, Param minor), ScmBox' _) ->
@@ -2043,6 +2044,7 @@ module Code_Generation : CODE_GENERATION = struct
          ^ (Printf.sprintf "\tje %s\n" label_arity_exact)
          ^ (Printf.sprintf "\tjg %s\n" label_arity_more)
          ^ (Printf.sprintf "%s:\n" label_arity_exact)
+         ^ "\tadd rsp, 2*8\n"
          ^ "\tmov rcx, 0\t; set index to intial value\n"
          ^ "\tmov rbx, rsp\t; save pointer to stack\n"
          ^ "\tadd rsp, 8\n"
@@ -2058,6 +2060,7 @@ module Code_Generation : CODE_GENERATION = struct
          ^ (Printf.sprintf "jmp %s\n" label_stack_ok)
          (*airty-more-case*)
          ^ (Printf.sprintf "%s:\n" label_arity_more)
+         ^ "\tadd rsp, 2*8\n"
          ^ "\tmov r8, [rsp + 2*8]\n"
          ^ "\tadd r8, 3\n"
          ^ "\tmov rbx, rsp\n"
@@ -2124,10 +2127,7 @@ module Code_Generation : CODE_GENERATION = struct
         ^ "\tcmp byte [rax], T_closure\t; assert closure \n"
         ^ "\tjne L_error_non_closure\n "
         ^ "\tpush qword [rax + 1]\t; push env\n"
-        ^ "\tcall qword [rax + 1 + 8]\t; call code\n"
-        ^ "\tadd rsp, 8*1\t;pop env\n"
-        ^ "\tpop rbx\t;pop arg count\n"
-        ^ "\tlea rsp, [rsp + 8*rbx]\t; correct rsp\n"
+        ^ "\tcall qword [rax + 1 + 8]\t; call code\n\n"
       | ScmApplic' (proc, args, Tail_Call) -> 
          let args_code =
            String.concat ""

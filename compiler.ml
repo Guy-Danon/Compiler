@@ -2065,7 +2065,7 @@ module Code_Generation : CODE_GENERATION = struct
          ^ "\tadd r8, 2\n"
          ^ "\tmov rbx, rsp\n"
          ^ "\timul r8, 8\n"
-         ^ "\tsub rbx, r8\n"
+         ^ "\tadd rbx, r8\n"
          ^ "\tmov rcx, [rsp + 2*8]\n"
          ^ (Printf.sprintf "\tsub rcx, %d\n" ((List.length params') + 1))
          ^ "\tmov r9, sob_nil\n"
@@ -2077,19 +2077,23 @@ module Code_Generation : CODE_GENERATION = struct
          ^ "\tmov SOB_PAIR_CAR(rax), r11\n"
          ^ "\tmov SOB_PAIR_CDR(rax), r9\n"
          ^ "\tmov r9, rax\n"
-         ^ "\tadd rbx, 8\n"
+         ^ "\tsub rbx, 8\n"
          ^ "\tmov r11, [rbx]\n"
          ^ "\tdec rcx\n"
          ^ "\tcmp rcx, 0\n"
-         ^ (Printf.sprintf "\tjg %s\n" label_loop_more_first)
+         ^ (Printf.sprintf "\tjge %s\n" label_loop_more_first)
          ^ "\tmov r8, [rsp + 2*8]\n"
          ^ "\tadd r8, 2\n"
          ^ "\tmov rbx, rsp\n"
          ^ "\timul r8, 8\n"
-         ^ "\tsub rbx, r8\n"
+         ^ "\tadd rbx, r8\n"
          ^ "\tmov [rbx], r9\n"
          ^ "\tsub rbx, 8\n"
-         ^ "\tmov rdx, rbx\n"
+         ^ "\tlea rax, [rsp + 2*8]\n"
+         ^ "\tcmp rbx, rax\n"
+         ^ (Printf.sprintf "\tje %s\n" label_stack_ok)
+         ^ (Printf.sprintf "\tmov rax, %d\n" (2 + List.length params'))
+         ^ "\tlea rdx, [rsp + rax*8]\n"
          ^ (Printf.sprintf "\tmov rcx, %d\n" ((List.length params') + 2))
          ^ (Printf.sprintf "%s:\n" label_loop_more_second)
          ^ "\tmov r10, [rdx]\n"
@@ -2098,8 +2102,9 @@ module Code_Generation : CODE_GENERATION = struct
          ^ "\tsub rdx, 8\n"
          ^ "\tdec rcx\n"
          ^ "\tcmp rcx, 0\n"
-         ^ (Printf.sprintf "\tjg %s\n" label_loop_more_second)
-         ^ "\tmov rsp, rdx\n"
+         ^ (Printf.sprintf "\tjge %s\n" label_loop_more_second)
+         ^ "\tadd rbx, 8\n"
+         ^ "\tmov rsp, rbx\n"
          ^ (Printf.sprintf "\tmov qword [rsp + 2*8], %d\n" ((List.length params') + 1))
         (*end-arity-more*)
          ^ (Printf.sprintf "%s:\n" label_stack_ok)

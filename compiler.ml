@@ -1907,8 +1907,8 @@ module Code_Generation : CODE_GENERATION = struct
         (run params env expr')
         ^ "\tpush rax\n"
         ^ (run params env (ScmVarGet' var')) (*TODO*)
-        ^ "pop qword [rax]\n"
-        ^ "mov rax, sob_void\n"
+        ^ "\tpop qword [rax]\n"
+        ^ "\tmov rax, sob_void\n"
       | ScmLambda' (params', Simple, body) ->
         let label_loop_env = make_lambda_simple_loop_env ()
         and label_loop_env_end = make_lambda_simple_loop_env_end ()
@@ -2037,32 +2037,32 @@ module Code_Generation : CODE_GENERATION = struct
          ^ (Printf.sprintf "%s:\t; lambda-opt body\n" label_code)
          ^ (Printf.sprintf "\tcmp qword [rsp + 8 * 2], %d\n"
               (List.length params'))
-         ^ (Printf.sprintf "\tpush %d\t; push expected param-count\n" (List.length params'))
          ^ "\tpush qword [rsp + 8 * 2]\t; push actual param-count\n"
+         ^ (Printf.sprintf "\tpush %d\t; push expected param-count\n" (List.length params'))
          ^ "\tjl L_error_incorrect_arity_opt\n"
          (*airty-exact-case*)
          ^ (Printf.sprintf "\tje %s\n" label_arity_exact)
          ^ (Printf.sprintf "\tjg %s\n" label_arity_more)
          ^ (Printf.sprintf "%s:\n" label_arity_exact)
-         ^ "\tadd rsp, 2*8\n"
+         ^ "\tadd rsp, 2*8\t; remove the desired and actual args from stack\n"
          ^ "\tmov rcx, 0\t; set index to intial value\n"
+         ^ "\tsub rsp, 8\n"
          ^ "\tmov rbx, rsp\t; save pointer to stack\n"
-         ^ "\tadd rsp, 8\n"
          ^ (Printf.sprintf "%s:\n" label_loop_exact)
+         ^ "\tadd rbx, 8\n"
          ^ "\tmov r11, [rbx]\n"
-         ^ "\tmov [rbx+8], r11\n"
+         ^ "\tmov [rbx-8], r11\n"
          ^ "\tinc rcx\n"
-         ^ "\tsub rbx, 8\n"
-         ^ (Printf.sprintf "cmp rcx, %d\n" ((List.length params') + 3))
+         ^ (Printf.sprintf "cmp rcx, %d\n" ((List.length params') + 2))
          ^ (Printf.sprintf "jle %s\n" label_loop_exact)
-         ^ "mov qword [rbx+8], sob_nil\n"
+         ^ "mov qword [rbx], sob_nil\n"
          ^ (Printf.sprintf "mov qword[rsp + 8*2], %d\n" ((List.length params') + 1))
          ^ (Printf.sprintf "jmp %s\n" label_stack_ok)
          (*airty-more-case*)
          ^ (Printf.sprintf "%s:\n" label_arity_more)
-         ^ "\tadd rsp, 2*8\n"
+         ^ "\tadd rsp, 2*8\t; remove the desired and actual args from stack\n"
          ^ "\tmov r8, [rsp + 2*8]\n"
-         ^ "\tadd r8, 3\n"
+         ^ "\tadd r8, 2\n"
          ^ "\tmov rbx, rsp\n"
          ^ "\timul r8, 8\n"
          ^ "\tsub rbx, r8\n"
@@ -2071,7 +2071,7 @@ module Code_Generation : CODE_GENERATION = struct
          ^ "\tmov r9, sob_nil\n"
          ^ "\tmov r11, [rbx]\n"
          ^ (Printf.sprintf "%s:\n" label_loop_more_first)
-         ^ "\tmov rdi, 1 + 8 + 8\n"
+         ^ "\tmov rdi, (1 + 8 + 8)\n"
          ^ "\tcall malloc\n"
          ^ "\tmov byte[rax], T_pair\n"
          ^ "\tmov SOB_PAIR_CAR(rax), r11\n"
@@ -2088,20 +2088,18 @@ module Code_Generation : CODE_GENERATION = struct
          ^ "\timul r8, 8\n"
          ^ "\tsub rbx, r8\n"
          ^ "\tmov [rbx], r9\n"
-         ^ (Printf.sprintf "\tmov rcx, %d\n" ((List.length params') + 3))
+         ^ "\tsub rbx, 8\n"
+         ^ "\tmov rdx, rbx\n"
+         ^ (Printf.sprintf "\tmov rcx, %d\n" ((List.length params') + 2))
          ^ (Printf.sprintf "%s:\n" label_loop_more_second)
-         ^ "\tmov rdx, rsp\n"
-         ^ "\tmov r10, rcx\n"
-         ^ "\tlea r10, [r10*8]\n"
-         ^ "\tsub rdx, r10\n"
          ^ "\tmov r10, [rdx]\n"
          ^ "\tmov [rbx], r10\n"
-         ^ "\tadd rbx, 8\n"
+         ^ "\tsub rbx, 8\n"
+         ^ "\tsub rdx, 8\n"
          ^ "\tdec rcx\n"
          ^ "\tcmp rcx, 0\n"
          ^ (Printf.sprintf "\tjg %s\n" label_loop_more_second)
-         ^ "\tsub rbx, 8\n"
-         ^ "\tmov rsp, rbx\n"
+         ^ "\tmov rsp, rdx\n"
          ^ (Printf.sprintf "\tmov qword [rsp + 2*8], %d\n" ((List.length params') + 1))
         (*end-arity-more*)
          ^ (Printf.sprintf "%s:\n" label_stack_ok)

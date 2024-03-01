@@ -1023,8 +1023,8 @@ module Semantic_Analysis : SEMANTIC_ANALYSIS = struct
       | ScmVarGet'(var'), _ -> ScmVarGet'(var')
       | ScmIf'(test, dit, dif), tp ->
           let test' = run false test in
-          let dit' = run tp test in
-          let dif' = run tp test in
+          let dit' = run tp dit in
+          let dif' = run tp dif in
           ScmIf'(test', dit', dif')
       | ScmSeq'(es), tp -> 
         let mapped_body = map_tp es tp in

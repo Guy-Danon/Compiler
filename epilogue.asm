@@ -422,7 +422,9 @@ print_sexpr:
 	mov rdx, qword [rdi + 1] ; length
 	lea rdi, [rdi + 1 + 8]	 ; actual characters
 	mov rcx, qword [stdout]	 ; FILE *
+	enter 0, 256
 	call fwrite
+	leave
 	jmp .Lend
 
 .Luninterned_symbol:
